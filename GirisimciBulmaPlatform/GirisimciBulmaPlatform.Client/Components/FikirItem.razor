@@ -1,0 +1,72 @@
+﻿<div class="mb-8 md:col-6">
+    <div class="rounded-xl bg-white p-5 shadow-lg lg:p-10">
+        <h3 class="h4">@item.FikirBaslik</h3>
+        <p class="mt-6">@item.FikirAciklama</p>
+        <ul class="mt-6 flex flex-wrap items-center text-dark">
+            <li class="my-1 mr-8 inline-flex items-center">
+                <i class="fa-solid fa-layer-group mr-2"></i>
+                @item.Katagori.KatagoriAdi
+            </li>
+            <li class="my-1 mr-8">
+                @if (edit && user != null && user.Id == item.KullaniciId)
+                {
+                    <a class="inline-flex items-center font-semibold text-primary" href="/fikirlerim/@item.Id">
+                        Düzenle
+                        <img class="ml-1.5" src="images/icons/arrow-right.svg" alt="" />
+                    </a>
+                }
+                else
+                {
+                    <a class="inline-flex items-center font-semibold text-primary" href="javascript:(0)" @onclick=ShowOrOpenContract>
+                        Görüntüle
+                        <img class="ml-1.5" src="images/icons/arrow-right.svg" alt="" />
+                    </a>
+                }
+            </li>
+        </ul>
+    </div>
+</div>
+<ContractModal visible=showContract fikir=item user=user Closed="ContractClose" Accepted="ContractAccept" />
+
+@code {
+    [Parameter] public Fikir item { get; set; }
+    [Parameter] public Kullanici? user { get; set; }
+    [Parameter] public bool edit { get; set; } = false;
+
+    private bool showContract = false;
+
+    private async void ShowOrOpenContract()
+    {
+        if (user == null)
+        {
+            await JSRuntime.InvokeVoidAsync("Toast.fire", new {
+                icon = "warning",
+                title = "Lütfen giriş yapınız"
+            });
+            return;
+        }
+
+        var acceptedIdeas = await helper.GetAcceptedIdeas(user);
+        if (user.Id == item.KullaniciId || acceptedIdeas.FirstOrDefault(idea => idea == item.Id) != 0)
+        {
+            Nav.NavigateTo($"fikir/{item.Id}");
+        }
+        else
+        {
+            showContract = true;
+            StateHasChanged();
+        }
+    }
+
+    private void ContractClose()
+    {
+        showContract = false;
+        StateHasChanged();
+    }
+
+    private async void ContractAccept()
+    {
+        await helper.AcceptIdea(user, item.Id);
+        Nav.NavigateTo($"fikir/{item.Id}");
+    }
+}

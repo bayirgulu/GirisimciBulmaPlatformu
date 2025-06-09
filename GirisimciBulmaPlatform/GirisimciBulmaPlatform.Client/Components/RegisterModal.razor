@@ -1,0 +1,220 @@
+﻿<style>
+    .input-valid {
+        border: 2px solid green;
+    }
+
+    .input-invalid {
+        border: 2px solid red;
+    }
+</style>
+
+<Modal visible="visible" Closed="Close">
+    <div class="text-center">
+        <h2 class="block text-2xl font-bold text-gray-800">Kayıt Olun</h2>
+        <p class="mt-2 text-sm text-gray-600">
+            Zaten hesabınız var mı?
+            <a class="text-red-600 decoration-2 hover:underline font-medium cursor-pointer" @onclick=ShowLogin>
+                Buradan giriş yapabilirsiniz
+            </a>
+        </p>
+    </div>
+
+    <div class="mt-5">
+        
+            <div class="form-group">
+                <label for="register_email" class="form-label">E-posta</label>
+                <input type="email"
+                       id="register_email"
+                       class="form-control"
+                   required @bind-value="mail" />
+            </div>
+        <div class="form-group">
+            <label for="register_email" class="form-label">Kullanıcı Adı</label>
+            <input type="text"
+                   id="register_email"
+                   class="form-control"
+                   required @bind-value="username" />
+        </div>
+            <div class="form-group mt-4">
+                <label for="register_password" class="form-label">Şifre</label>
+                <input type="password"
+                       id="register_password"
+                       class="form-control"
+                       required @bind-value="password" />
+            </div>
+            <div class="form-group mt-4">
+                <label for="register_repassword" class="form-label">Şifre (Tekrar)</label>
+                <input type="password"
+                       id="register_repassword"
+                           class="@(IsValid ? "input-valid form-control" : "input-invalid form-control")"
+                           required @bind-value="repatpassword" />
+            </div>
+        <div class="form-group mt-4">
+            <label for="register_repassword" class="form-label">Ad Soyad</label>
+            <input type="text"
+                   id="register_repassword"
+                   class="form-control"
+                   required @bind-value="name" />
+        </div>
+        <div class="form-group mt-4">
+            <label for="register_repassword" class="form-label">Telefon Numarası</label>
+            <input type="tel"
+                   id="register_repassword"
+                   class="form-control"
+                   required @bind-value="number" />
+        </div>
+        <div class="form-group mt-4">
+            <label for="register_repassword" class="form-label">Doğum Tarihi</label>
+            <input type="date"
+                   id="register_repassword"
+                   class="form-control"
+                   required @bind-value="birthday" />
+        </div>
+        <button type="submit" class="btn btn-primary mt-10 block w-full" @onclick="SignUp">Hesap Oluştur</button>
+        
+    </div>
+</Modal>
+
+@code {
+    [Parameter] public bool visible { get; set; } = false;
+    [Parameter] public EventCallback Closed { get; set; }
+    [Parameter] public EventCallback OpenLogin { get; set; }
+
+
+    private bool eklendi = false;
+
+    private string? mail, password, name, number, username, repatpassword;
+    private DateTime birthday = DateTime.Now;
+    private bool IsValid => !string.IsNullOrWhiteSpace(password) && repatpassword == password;
+
+    private async Task Close()
+    {
+        await Closed.InvokeAsync();
+    }
+
+    private async Task ShowLogin()
+    {
+        await OpenLogin.InvokeAsync();
+    }
+    public async Task<bool> EkleKullaniciAsync(Kullanici User)
+    {
+        var response = await httpClient.PostAsJsonAsync("Home/KullaniciEkle", User);
+        var content = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            JSRuntime.InvokeVoidAsync("Toast.fire", new
+            {
+                icon = "error",
+                title = content
+            });
+        }
+
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<Kullanici?> SorgulaKullaniciAsync(Kullanici User)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync("Home/SorgulaKullanici", User);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<Kullanici>();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("logToConsole", ex.Message);
+            return null;
+        }
+
+    }
+
+    private async Task SignUp()
+    {
+        if (IsValid)
+        {
+            if (!string.IsNullOrEmpty(username) && !string.IsNullOrWhiteSpace(password) && !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(mail))
+            {
+                try
+                {
+                    Kullanici kullanici = new Kullanici { AdSoyad = name, KullaniciAdi = username, DogumTarihi = birthday, Telefon = number, MailAdres = mail, KullaniciSifre = password };
+                    eklendi = await EkleKullaniciAsync(kullanici);
+                    if (eklendi)
+                    {
+                        var useraktif = await SorgulaKullaniciAsync(kullanici);
+                        await helper.SetUser(useraktif);
+                        Nav.NavigateTo(Nav.Uri, true);
+                    }
+                    else
+                    {
+                        password = null;
+                        repatpassword = null;
+                    }
+                    StateHasChanged();
+
+                }
+                catch (Exception ex)
+                {
+                    await JSRuntime.InvokeVoidAsync("logToConsole", ex);
+                }
+
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("Toast.fire", new
+                {
+                    icon = "error",
+                    title = "Eksik alanlar var"
+                });
+                StateHasChanged();
+            }
+
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("logToConsole", "Şifreler Eşleşmiyor");
+        }
+       
+        // if (!string.IsNullOrEmpty(mail) && !string.IsNullOrWhiteSpace(password) && !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(username))
+        // {
+        //     // NOTE: Check password here!!
+        //     //await Close();
+        //     try
+        //     {
+        //         Kullanici kullanici = new Kullanici { KullaniciAdi = username.Trim(), KullaniciSifre = password.Trim(), AdSoyad = name.Trim(), DogumTarihi = birthday, MailAdres = mail.Trim(), Telefon = number.Trim() };
+        //         eklendi = await EkleKullaniciAsync(kullanici);
+        //         await JSRuntime.InvokeVoidAsync("logToConsole", eklendi);
+        //         if (eklendi)
+        //         {
+        //             iswrong = true;
+        //             bilgilendirme = "Kayit Başarıyla oluşturuldu";
+        //             await JSRuntime.InvokeVoidAsync("logToConsole", "Hatalı Giriş");
+        //             await Close();
+
+        //         }
+        //         else
+        //         {
+        //             iswrong = true;
+        //             bilgilendirme = "Kayıt oluştururken bir sorunla karşılaşıldi";
+        //             await JSRuntime.InvokeVoidAsync("logToConsole", "Giris Yapildi");
+
+        //         }
+        //         StateHasChanged();
+        //         password = null;
+
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         await JSRuntime.InvokeVoidAsync("logToConsole", ex.ToString());
+        //     }
+
+        // }
+        // else
+        // {
+        //     bilgilendirme = "Eksik Alanlar var";
+        //     iswrong = true;
+        //     StateHasChanged();
+        // }
+
+    }
+}

@@ -1,0 +1,163 @@
+﻿<style>
+	.imgcontainer {
+		text-align: left;
+		margin: 8px 0 8px 0;
+		display: contents;
+	}
+
+	img.avatar {
+		width: 70%;
+		border-radius: 50%;
+	}
+
+	.modal-body {
+		max-height: 320px; /* Maksimum yükseklik */
+		overflow-y: auto; /* İçerik max-height'i aşarsa, dikey scrollbar göster */
+	}
+	
+</style>
+
+<div class="modal-backdrop fade @(visible ? "show" : "") @(visible ? "d-block" : "d-none")" />
+
+<div class="modal fade @(visible ? "show" : "")  @(visible ? "d-block" : "d-none")" tabindex="-1" role="dialog">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<div class="imgcontainer">
+					<img src="images/banner.png" alt="Avatar" class="avatar">
+				</div>
+				<h5 class="modal-title">Üye Ol</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body">
+				<div class="mb-3">
+					<label for="loginEmail" class="form-label">Ad Soyad</label>
+					@* <input type="form-control is-invalid" class="form-control" id="loginEmail" placeholder="name@example.com" autocomplete="off" required @bind-value="name" /> *@
+					<input class="form-control" id="validationTextarea" placeholder="Adın Soyadın" required @bind-value="name"/>
+				</div>
+				<div class="mb-3">
+					<label for="loginEmail" class="form-label">Kullanıcı Adı</label>
+					<input type="text" class="form-control" id="loginEmail" placeholder="Kullanıcı Adı" autocomplete="off" required @bind-value="username" />
+				</div>
+				<div class="mb-3">
+					<label for="loginEmail" class="form-label">Şifre</label>
+					<input type="password" class="form-control" id="loginEmail" placeholder="*****" autocomplete="off" required @bind-value="password" />
+				</div>
+				<div class="mb-3">
+					<label for="loginEmail" class="form-label">Şifre Onayla</label>
+					<input type="password" class="form-control" id="loginEmail" placeholder="*****" autocomplete="off" required @bind-value="password2" />
+				</div>				
+				<div class="mb-3">
+					<label for="loginEmail" class="form-label">Email</label>
+					<input type="email" class="form-control" id="loginEmail" placeholder="name@example.com" autocomplete="off" required @bind-value="user" />
+				</div>
+				<div class="mb-3">
+					<label for="loginEmail" class="form-label">Telefon</label>
+					<input type="tel" class="form-control" id="loginEmail" placeholder="05xx xxx xxxx" autocomplete="off" required @bind-value="number" />
+				</div>
+				<div class="mb-3">
+					<label for="loginPassword" class="form-label">Doğum Tarihi</label>
+					<input type="date" class="form-control" id="loginPassword" required @bind-value="birthday" />
+				</div>
+			</div>
+			<div class="modal-footer">
+				<div class="col">
+					<div class="row">
+						<button type="button" class="btn btn-success mb-3" @onclick="SignUp">Kayıt Yap</button>
+						<button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="Close">İptal Et</button>
+					</div>
+					<div class="row">
+						<div class="col-4 mt-3 alert alert-light" role="alert">
+							<a href="#">Şifremi Unuttum</a>
+						</div>
+						<div class="mt-3 col-8 alert @(eklendi?"alert-success":"alert-danger") @(iswrong ? "d-block":"d-none")" role="alert">
+							@bilgilendirme
+						</div>
+					</div>
+					@* <div class="row">
+						
+					</div> *@
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+
+
+@code {
+	[Parameter] public bool visible { get; set; } = false;
+
+	[Parameter] public EventCallback Closed { get; set; }
+
+	private bool iswrong = false;
+	private bool eklendi = false;
+	private string bilgilendirme = "";
+
+	private string? user, password,name,password2,number,username;
+	private DateTime birthday = DateTime.Now;
+	public async Task<bool> EkleKullaniciAsync(Kullanici User)
+	{
+		var response = await httpClient.PostAsJsonAsync("Home/KullaniciEkle", User);
+		response.EnsureSuccessStatusCode();
+
+		// await response.Content.ReadFromJsonAsync();
+		//await JSRuntime.InvokeVoidAsync("logToConsole", response.IsSuccessStatusCode);
+		return response.IsSuccessStatusCode;
+	}
+
+	private async Task Close()
+	{
+		await Closed.InvokeAsync();
+		eklendi = false;
+		StateHasChanged();
+	}
+	private async Task SignUp()
+	{
+		await JSRuntime.InvokeVoidAsync("logToConsole", "Signupa girdi");
+		if (!string.IsNullOrEmpty(user) && !string.IsNullOrWhiteSpace(password) && !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(username))
+		{
+			// NOTE: Check password here!!
+			//await Close();
+			try
+			{
+				await JSRuntime.InvokeVoidAsync("logToConsole", "ife girdi");
+				Kullanici kullanici = new Kullanici { KullaniciAdi = username.Trim(), KullaniciSifre = password.Trim(),AdSoyad=name.Trim(),DogumTarihi=birthday,MailAdres=user.Trim(),Telefon=number.Trim() };
+				eklendi = await EkleKullaniciAsync(kullanici);
+				await JSRuntime.InvokeVoidAsync("logToConsole", eklendi);
+				if (eklendi)
+				{
+					iswrong = true;
+					bilgilendirme = "Kayit Başarıyla oluşturuldu";
+					await JSRuntime.InvokeVoidAsync("logToConsole", "Hatalı Giriş");
+					await Close();
+
+				}
+				else
+				{
+					iswrong = true;
+					bilgilendirme = "Kayıt oluştururken bir sorunla karşılaşıldi";
+					await JSRuntime.InvokeVoidAsync("logToConsole", "Giris Yapildi");
+					
+				}
+				StateHasChanged();
+				password = null;
+
+			}
+			catch (Exception ex)
+			{
+				await JSRuntime.InvokeVoidAsync("logToConsole", ex.ToString());
+			}
+
+		}
+		else
+		{
+			bilgilendirme = "Eksik Alanlar var";
+			iswrong = true;
+			StateHasChanged();
+		}
+		
+	}
+}

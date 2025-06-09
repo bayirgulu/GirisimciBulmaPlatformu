@@ -1,0 +1,152 @@
+﻿@page "/fikir/{Id}"
+
+<style>
+    a.swiper-slide.swiper-slide-active {
+        width: 100% !important;
+    }
+</style>
+
+<section class="section">
+    <div class="container">
+        <div class="row justify-center">
+            <div class="lg:col-10">
+                <div class="rounded-xl bg-white py-16 px-5 shadow-lg md:px-10 tab">
+                    @if (loading)
+                    {
+                        <div class="flex justify-center items-center py-10">
+                            <span class="loader"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (fikir != null && sozlesme)
+                        {
+                            <div class="px-4">
+                                @if (fikir.Fotorafs.Count > 0)
+                                {
+                                    <div class="swiper">
+                                        <div class="swiper-wrapper gallery">
+                                            @foreach (var foto in fikir.Fotorafs)
+                                            {
+                                                <a class="swiper-slide" data-src="Home/images/@foto.FotoDosyaYolu">
+                                                    <img style="margin: 0 auto; max-height: 600px; object-fit: contain;" src="Home/images/@foto.FotoDosyaYolu" />
+                                                </a>
+                                            }
+                                        </div>
+
+                                        <div class="swiper-button-prev"></div>
+                                        <div class="swiper-button-next"></div>
+                                    </div>
+                                }
+                                <div class="mt-6 flex items-center justify-center gap-x-3">
+                                    <h1>@fikir.FikirBaslik</h1>
+                                    @if (fikir.KullaniciId == user.Id)
+                                    {
+                                        <a href="/fikirlerim/@fikir.Id" class="btn btn-primary flex items-center justify-center" style="padding: 0.75rem; height: auto"><i class="fa-solid fa-pen"></i></a>
+                                    }
+                                </div>
+                                <div class="mt-6 mb-5 flex items-center space-x-2">
+                                    <div class="blog-author-avatar h-[58px] w-[58px] rounded-full p-0.5 flex items-center justify-center">
+                                        @if (fikir.Kullanici.Foto != null)
+                                        {
+                                            <img src="Home/images/@fikir.Kullanici.Foto" alt="">
+                                        }
+                                        else
+                                        {
+                                            <i class="fa-solid fa-user text-3xl"></i>
+                                        }
+                                    </div>
+                                    <div class="">
+                                        <p class="text-dark">@fikir.Kullanici.AdSoyad</p>
+                                        <a href="mailto:@fikir.Kullanici.MailAdres" class="text-dark">@fikir.Kullanici.MailAdres</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <p>
+                                    @fikir.FikirDetay
+                                </p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="flex flex-col justify-center items-center">
+                                <span class="text-xl font-bold">Fikri görüntüleyebilmek için sözleşmeyi kabul etmeniz gerekmektedir.</span>
+                                <span>
+                                    <button class="btn btn-primary btn-sm mt-4" @onclick=ContractToggle>Sözleşmeyi Görüntüle</button>
+                                </span>
+                            </div>
+                            <ContractModal visible=showContract fikir=fikir user=user Closed="ContractToggle" Accepted="ContractAccept" />
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+
+    [Parameter] public string Id { get; set; }
+
+    public Kullanici? user;
+    public Fikir? fikir;
+    public bool sozlesme = false;
+    public bool loading = true;
+
+    private bool showContract = false;
+
+    protected override async void OnInitialized()
+    {
+        user = await helper.GetUser();
+        if (user == null)
+        {
+            Nav.NavigateTo("/");
+            await JSRuntime.InvokeVoidAsync("Toast.fire", new
+            {
+                icon = "warning",
+                title = "Lütfen giriş yapınız"
+            });
+            return;
+        }
+        else
+        {
+            var response = await httpClient.GetAsync($"Home/fikirgetir/{Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                fikir = await response.Content.ReadFromJsonAsync<Fikir>();
+                if (fikir == null)
+                {
+                    Nav.NavigateTo("/");
+                    return;
+                }
+
+                var acceptedIdeas = await helper.GetAcceptedIdeas(user);
+                // kullanıcı sözleşmeyi kabul ettiyse
+                sozlesme = user.Id == fikir.KullaniciId || acceptedIdeas.FirstOrDefault(idea => idea == fikir.Id) != 0;
+            }
+            else
+            {
+                Nav.NavigateTo("/", true);
+                return;
+            }
+        }
+        loading = false;
+        StateHasChanged();
+        if (sozlesme)
+        {
+            await JSRuntime.InvokeVoidAsync("window.loadGallery");
+        }
+    }
+
+    private void ContractToggle()
+    {
+        showContract = !showContract;
+    }
+
+    private async void ContractAccept()
+    {
+        await helper.AcceptIdea(user, fikir.Id);
+        sozlesme = true;
+    }
+}

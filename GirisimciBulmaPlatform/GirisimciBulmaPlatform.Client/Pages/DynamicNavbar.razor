@@ -1,0 +1,154 @@
+﻿@inject HttpClient httpClient
+
+@inject Blazored.SessionStorage.ISessionStorageService session
+
+<style>
+    .imgcontainer {
+        text-align: left;
+        margin: 8px 0 8px 0;
+        display: contents;
+    }
+
+    img.avatar {
+        width: 70%;
+        border-radius: 50%;
+    }
+</style>
+
+ 
+    
+      
+        <nav class="navbar navbar-expand-lg navbar-dark bg-success py-1">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">Girişimci Bulma</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main_nav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="main_nav">
+                    <ul class="navbar-nav">
+                        @foreach (var item in MenuItems)
+                        {
+                            <li class="m-2 nav-item @(item.HasSubItems ? "dropdown" : "")">
+                                <a class="nav-link @(item.HasSubItems ? "dropdown-toggle" : "")" href="@item.Link" style="font-size:18px" data-bs-toggle="@(item.HasSubItems ? "dropdown" : "")">
+                                    <i class="px-2 @item.IconClass"></i>  @item.Title
+                                </a>
+                                @if (item.HasSubItems)
+                                {
+                                    <ul class="dropdown-menu">
+                                        @foreach (var subItem in item.SubItems)
+                                        {
+                                            <li><a class="dropdown-item" href="@subItem.Link">@subItem.Title</a></li>
+                                        }
+                                    </ul>
+                                }
+                            </li>
+                        }
+                    </ul>
+                    <ul class="navbar-nav ms-auto" style="margin-right:20px">
+                        @if (LoginState != null)
+                        {
+                            <li class="nav-item dropdown">
+                                <a href="javascript:(0)" class="nav-link dropdown-toggle" data-bs-toggle="dropdown"><b>@LoginState</b></a>
+                                <u class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="fikirlerim">Fikirlerim</a></li>
+                                    <li><a class="dropdown-item" href="addfikir">Yeni Fikir Ekle</a></li>
+                                    <li><a class="dropdown-item" href="ayar">Ayarlar</a> </li>
+                                    <li><a class="dropdown-item" href="javascript:(0)" @onclick=closeSession>Oturumu Kapat</a> </li>
+                                </u>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a href="javascript:(0)" class="nav-link" @onclick=loginToggle><b>Giriş Yap</b></a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="javascript:(0)" class="nav-link" @onclick=signupToggle><b>Kayıt Ol</b></a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <Login visible=loginVisible Closed="loginToggle" LogIn="logingetdata" />
+        <Signup visible=signupVisible Closed=signupToggle />
+    
+   
+
+
+
+@code {
+    private bool signupVisible = false;
+    private bool loginVisible = false;
+    private string LoginState = null;
+    private List<Katagori> katagoris=new List<Katagori>();
+
+    public List<MenuItem> MenuItems = new List<MenuItem>
+    {
+        new MenuItem { Title = "Home", Link = "datagrid",IconClass="fa-solid fa-house" },
+        new MenuItem { Title = "About", Link = "index",IconClass="fa-solid fa-user" },
+        new MenuItem
+        {
+            Title = "KataGoriler",
+
+            // SubItems = new List<MenuItem>
+            // {
+            //     new MenuItem { Title = "Dropdown item 1", Link = "#" },
+            //     new MenuItem { Title = "Dropdown item 1", Link = "#" },
+            //     // Diğer alt menü öğeleri...
+            // }
+        },
+        // Diğer ana menü öğeleri...
+    };
+    protected override async Task OnInitializedAsync()
+    {       
+        katagoris = await GetAllKategorilerAsync();
+        for (int i = 0; i < katagoris.Count; i++)
+        {
+            MenuItems[2].SubItems.Add(new MenuItem { Title = katagoris[i].KatagoriAdi, Link = "katagorifikir/"+katagoris[i].Id.ToString() });
+        }
+        var user = await helper.GetUser();
+        if (user!=null)
+        {
+            LoginState = user.KullaniciAdi;
+        }
+
+    }
+    public async Task<List<Katagori>> GetAllKategorilerAsync()
+    {
+        var response = await httpClient.PostAsJsonAsync("Home/GetAllKategoriler", new { });
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<List<Katagori>>();
+    }
+    private void logingetdata(string data)
+    {      
+        LoginState = data;
+        StateHasChanged();
+    }
+    private void signupToggle()
+    {
+        signupVisible = !signupVisible; 
+    }
+
+    private void loginToggle()
+    {
+        if (LoginState == null) // oturum yok ise
+        {
+            loginVisible = !loginVisible;
+        }
+    }
+    private async void closeSession()
+    {
+        if (LoginState != null)  // oturum var ise
+        {
+          //  session.ClearAsync();
+            await helper.ClearUser();
+            LoginState = null;
+            StateHasChanged();
+            Nav.NavigateTo("/", true);
+        }
+        
+    }
+
+}

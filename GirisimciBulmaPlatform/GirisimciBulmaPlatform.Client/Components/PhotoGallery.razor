@@ -1,0 +1,40 @@
+﻿<style>
+    .photo-gallery {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+        .photo-gallery img {
+            margin: 5px;
+            border: 1px solid #ccc;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+
+</style>
+
+@if (ImageUrls != null)
+{
+    <div class="photo-gallery">
+        @foreach (var imageUrl in ImageUrls)
+        {
+            <img src="@imageUrl" width="@ImageWidth" height="@ImageHeight" />
+        }
+    </div>
+}
+else
+{
+    <p>Galeri için fotoğraf bulunamadı.</p>
+}
+
+
+@code {
+    [Parameter]
+    public List<string> ImageUrls { get; set; }
+
+    [Parameter]
+    public int ImageWidth { get; set; } = 150; // Varsayılan genişlik
+
+    [Parameter]
+    public int ImageHeight { get; set; } = 150; // Varsayılan yükseklik
+
+}

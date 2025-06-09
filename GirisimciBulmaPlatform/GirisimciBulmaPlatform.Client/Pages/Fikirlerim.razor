@@ -1,0 +1,136 @@
+﻿@page "/fikirlerim"  
+
+<section class="page-hero pb-10">
+    <div class="container">
+        <div class="page-hero-content mx-auto flex items-center justify-between">
+            <span />
+            <h1 class="mb-5 mt-8">Fikirlerim</h1>
+            <button class="btn btn-primary text-lg">Fikir Ekle</button>
+        </div>
+    </div>
+</section>
+
+<section class="section pt-0">
+    <div class="container">
+        @if(loading)
+        {
+            <div class="flex justify-center items-center py-10">
+                <span class="loader"></span>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                <div class="mx-auto text-center lg:col-6 flex">
+                    <input class="form-control" @bind-value=search type="text" placeholder="Fikir arayın" style="border-top-right-radius: 0; border-bottom-right-radius: 0;" />
+                    <button class="btn btn-primary h-full text-xl px-4 disabled:opacity-50" disabled="@(search == "")" style="border-radius: 0 50px 50px 0;" @onclick=ClearSearch>
+                        <i class="fa-solid fa-x"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="row">
+                <div class="mx-auto text-center">
+                    <ul class="integration-tab filter-list mt-8 flex flex-wrap items-center justify-center" style="gap: 0.75rem">
+                        <li>
+                            <button class="@(category == null ? "btn-primary" : "btn-outline-primary") btn btn-sm disabled:opacity-50" @onclick=@(() => setCategory())>Hepsi</button>
+                        </li>
+                        @foreach (var katagori in katagoris)
+                        {
+                            <li>
+                                <button class="@(category != null && category == katagori.Id ? "btn-primary" : "btn-outline-primary") btn btn-sm disabled:opacity-50" @onclick=@(() => setCategory(katagori.Id))>@katagori.KatagoriAdi</button>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+            <div class="row mt-12">
+                @foreach (var item in filteredFikirler)
+                {
+                    <FikirItem item="item" user=user edit=true />
+                }
+            </div>
+        }
+    </div>
+</section>
+
+
+@code {
+    private List<Fikir> fikirs = new List<Fikir>();
+    private List<Fikir> filteredFikirler
+    {
+        get
+        {
+            return fikirs
+                .Where(f => category == null || f.KatagoriId == category)
+                .Where(f => string.IsNullOrEmpty(search) || (f.FikirBaslik?.ToLower().Contains(search.ToLower()) ?? false))
+                .ToList();
+        }
+    }
+    private Kullanici? user;
+    private List<Katagori> katagoris = new List<Katagori>();
+    private bool loading = true;
+    private string search = "";
+    [Parameter][SupplyParameterFromQuery(Name = "c")] public int? category { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            user = await helper.GetUser();
+            if (user != null)
+            {
+                katagoris = await GetAllKategorilerAsync();
+                var response = await httpClient.GetAsync($"Home/kullanicifikir/{user.Id}");
+                await JSRuntime.InvokeVoidAsync("logToConsole", response);
+                if (response.IsSuccessStatusCode)
+                {
+                    fikirs = await response.Content.ReadFromJsonAsync<List<Fikir>>();
+                    if (category != null && katagoris.FirstOrDefault(k => k.Id == category) == null)
+                        category = null;
+                }
+                loading = false;
+                StateHasChanged();
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("Swal.fire", new
+                {
+                    icon = "warning",
+                    title = "Lütfen giriş yapınız"
+                });
+                Nav.NavigateTo("/");
+            }
+        }
+        catch (Exception ex)
+        {
+
+            await JSRuntime.InvokeVoidAsync("logToConsole", ex.Message);
+        }
+    }
+
+    public async Task<List<Katagori>> GetAllKategorilerAsync()
+    {
+        var response = await httpClient.PostAsJsonAsync("Home/GetAllKategoriler", new { });
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<List<Katagori>>();
+    }
+
+    private void setCategory(int? cat = null)
+    {
+        category = cat;
+        if (category == null)
+        {
+            Nav.NavigateTo($"{Nav.BaseUri}fikirlerim");
+        }
+        else
+        {
+            Nav.NavigateTo(Nav.GetUriWithQueryParameter("c", category));
+        }
+    }
+
+    private void ClearSearch()
+    {
+        search = string.Empty;
+    }
+}

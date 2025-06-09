@@ -1,0 +1,113 @@
+﻿<Modal visible="visible" Closed="Close">
+    <div class="text-center">
+        <h2 class="block text-2xl font-bold text-gray-800">Giriş Yapın</h2>
+        <p class="mt-2 text-sm text-gray-600">
+            Henüz hesabınız yok mu?
+            <a class="text-red-600 decoration-2 hover:underline font-medium cursor-pointer" @onclick=ShowRegister>
+                Buradan kayıt olabilirsiniz
+            </a>
+        </p>
+    </div>
+
+    <div class="mt-5">
+        <EditForm Model=@form  OnValidSubmit="HandleSubmit">
+            <div class="form-group">
+                <label for="login_username" class="form-label">Kullanıcı Adı</label>
+                <InputText @bind-Value="form.username" type="text" id="login_username" class="form-control" required />
+            </div>
+            <div class="form-group mt-4">
+                <label for="login_password" class="form-label">Şifre</label>
+                <InputText @bind-Value="form.password" type="password" id="login_password" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-primary mt-10 block w-full disabled:opacity-50" disabled="@loading">Giriş Yap</button>
+        </EditForm>
+    </div>
+</Modal>
+
+@code {
+    [Parameter] public bool visible { get; set; } = false;
+    [Parameter] public EventCallback Closed { get; set; }
+    [Parameter] public EventCallback OpenRegister { get; set; }
+
+    private Form form = new Form();
+    private bool loading = false;
+    class Form
+    {
+        public string username { get; set; }
+        public string password { get; set; }
+    }
+
+    private async Task Close() => await Closed.InvokeAsync();
+
+    private async Task ShowRegister()
+    {
+        await OpenRegister.InvokeAsync();
+    }
+
+    public async Task<Kullanici?> SorgulaKullaniciAsync(Kullanici User)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync("Home/SorgulaKullanici", User);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<Kullanici>();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("logToConsole", ex.Message);
+            return null;
+        }
+
+    }
+    private async void HandleSubmit()
+    {
+        login();
+    }
+    private async void login()
+    {
+        if (!string.IsNullOrEmpty(form.username) && !string.IsNullOrWhiteSpace(form.password))
+        {
+            try
+            {
+                loading = true;
+                StateHasChanged();
+                Kullanici kullanici = new Kullanici { KullaniciAdi = form.username, KullaniciSifre = form.password };
+                var useraktif = await SorgulaKullaniciAsync(kullanici);
+                if (useraktif == null)
+                {
+                    await JSRuntime.InvokeVoidAsync("Toast.fire", new
+                    {
+                        icon = "error",
+                        title = "Kullanıcı bulunamadı!"
+                    });
+                    form.password = "";
+                    StateHasChanged();
+                    loading = false;
+                    return;
+                }
+
+                if (useraktif.AdSoyad == null && useraktif.KullaniciAdi == null)
+                {
+                    await JSRuntime.InvokeVoidAsync("Toast.fire", new
+                    {
+                        icon = "error",
+                        title = "Hatalı giriş"
+                    });
+                    loading = false;
+                }
+                else
+                {
+                    await helper.SetUser(useraktif);
+                    Nav.NavigateTo(Nav.Uri, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("logToConsole", ex.Message);
+            }
+            loading = false;
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,80 @@
+﻿@page "/vizyon-misyon"
+
+<section class="section banner relative">
+    <div class="container">
+        <div class="row items-center mb-16">
+            <div class="lg:col-7">
+                <h1 class="banner-title">
+                    <i>Vizyonumuz</i>
+                </h1>
+                <h3 class="mt-6">
+                    "Dünyanın Her Köşesindeki Yenilikçi Fikirleri ve Girişimci Ruhları Bir Araya Getiriyoruz."
+                </h3>               
+                <p class="mt-6" style="font-size:22px">
+                    InnoMatch, dünyanın dört bir yanındaki yenilikçi zihinlerin buluşma noktasıdır.
+                    Vizyonumuz, her ölçekten girişimciye, fikirlerini paylaşma, geliştirme ve hayata geçirme fırsatı sunmak.
+                    Küresel bir işbirliği ağı oluşturarak, girişimciliğin sınırlarını genişletmeyi ve her bireyin potansiyelini en üst düzeye çıkarmayı hedefliyoruz. 
+                    InnoMatch, fikirlerin sadece hayal olmaktan çıkıp, gerçek dünya çözümlerine dönüştüğü bir platformdur.
+                </p>
+               
+            </div>
+            <div class="lg:col-5">
+                <div class="swiper">
+                    <div class="swiper-wrapper gallery">
+                        <a class="swiper-slide" data-src="Home/images/vizyon.png">
+                            <img class="w-full object-contain"
+                                 src="Home/images/vizyon.png"
+                                 style="border-radius:25px"
+                                 width="603"
+                                 height="396"
+                                 alt="" />
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>  
+        <div class="row items-center mt-16">
+            <div class="lg:col-5">
+                <div class="swiper"> 
+                    <div class="swiper-wrapper gallery">
+                         <a class="swiper-slide" data-src="Home/images/misyon.png"> 
+                            <img class="w-full object-contain"
+                                 src="Home/images/misyon.png"
+                                 style="border-radius:25px"
+                                 width="603"
+                                 height="396"
+                                 alt="" />
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="lg:col-7">
+                <h1 class="banner-title">
+                    <i>Misyonumuz</i>
+                </h1>
+                <h4 class="mt-6">
+                    "Fikirlerinizi Gerçeğe Dönüştürmek İçin Güçlü Bir Topluluk ve Kaynaklar Sunuyoruz."
+                </h4>
+                <p class="mt-6" style="font-size:22px">
+                    InnoMatch'in misyonu, yenilikçi fikirleri ve girişimci ruhları desteklemek, onları bir araya getirmek ve başarıya ulaşmaları için gerekli kaynakları sağlamaktır. 
+                    Platformumuz, fikir sahipleri ile iş yapmak isteyen, ancak kendi fikri olmayan bireyleri bir araya getirerek, her iki tarafın da güçlü yanlarını kullanmasını sağlar.
+                    Çeşitli kategorilerdeki fikirleri sunarak, kullanıcılarımızın ilgi ve yeteneklerine uygun ortaklar bulmalarına yardımcı oluyoruz.
+                    İnovasyon, işbirliği ve çeşitliliği temel alan yaklaşımımızla, sürdürülebilir ve etkili iş modellerinin gelişimine katkıda bulunuyoruz.
+                </p>
+
+            </div>
+           
+        </div>
+    </div>
+  
+</section>
+
+@code {
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            JSRuntime.InvokeVoidAsync("window.loadGallery");
+        }
+    }
+}

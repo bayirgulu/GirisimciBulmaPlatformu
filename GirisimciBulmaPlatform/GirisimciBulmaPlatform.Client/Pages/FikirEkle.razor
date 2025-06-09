@@ -1,0 +1,255 @@
+﻿@inject Blazored.SessionStorage.ISessionStorageService session
+
+@page "/fikirlerim/yeni"
+
+
+<style>
+    .upload-container {
+        width: 100%;
+        border: 2px dashed #cccccc;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .file-preview {
+        margin-top: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: start;
+        gap: 10px;
+    }
+
+    .image-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .image-container img {
+        max-width: 100px;
+        max-height: 100px;
+        border: 1px solid #dddddd;
+    }
+
+    .image-container .delete-btn {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background-color: red;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+
+    .select-btn {
+        background-color: #004aad;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .select-btn:hover {
+        background-color: #003377;
+    }
+
+    .drag-over {
+        border-color: #0000ff;
+        background-color: #f0f8ff;
+    }
+</style>
+
+<section class="page-hero">
+    <div class="container">
+        <div class="page-hero-content mx-auto max-w-[768px] text-center">
+            <h1 class="mb-5 text-3xl mt-8">Yeni Fikir</h1>
+        </div>
+    </div>
+</section>
+
+<section class="section mt-12 pt-0">
+    <div class="container">
+        <div class="row justify-center lg:px-10">
+            <div class="col-6">
+                @if (loading)
+                {
+                    <div class="flex justify-center items-center py-10">
+                        <span class="loader"></span>
+                    </div>
+                }
+                else
+                {
+                    <EditForm Model="fikir" OnValidSubmit="@HandleValidSubmit">
+                        <DataAnnotationsValidator />
+                        <div class="space-y-12">
+                            <div class="pb-12">
+                                <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+
+                                    <div class="col-span-full form-group">
+                                        <label for="category" class="form-label">Kategori</label>
+                                        <InputSelect @bind-Value="fikir.KatagoriId" class="form-control">
+                                            <option value="">Katagori Seçin</option>
+                                            @foreach (var katogori in katagoris)
+                                            {
+                                                <option value="@katogori.Id">@katogori.KatagoriAdi</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+
+                                    <div class="col-span-full form-group">
+                                        <label for="title" class="form-label">Başlık</label>
+                                        <InputText @bind-Value=fikir.FikirBaslik DisplayName="Fikir Başlık" type="text" id="title" class="form-control" />
+                                        <ValidationMessage For="@(() => fikir.FikirBaslik)" />
+                                    </div>
+
+                                    <div class="col-span-full form-group">
+                                        <label for="short_description" class="form-label">Kısa Açıklama</label>
+                                        <InputTextArea @bind-Value=fikir.FikirAciklama DisplayName="Fikir Kısa Açıklama" class="form-control h-[90px] resize-none" id="short_description" rows="4"></InputTextArea>
+                                    </div>
+
+                                    <div class="col-span-full form-group">
+                                        <label for="description" class="form-label">Açıklama</label>
+                                        <InputTextArea @bind-Value=fikir.FikirDetay DisplayName="Fikir Açıklama" class="form-control h-[150px] resize-none" id="description" rows="10"></InputTextArea>
+                                    </div
+
+                                    <div class="col-span-full form-group">
+                                        <label for="description" class="form-label">Fotoğraflar</label>
+                                        <div class="upload-container" id="drag-drop-area">
+                                            <InputFile OnChange="@OnInputFileChangeMultiple" @ref=filePicker id="file-input" multiple hidden />
+                                            <button type="button" class="select-btn" @onclick=OpenFilepicker>Görsel Seç</button>
+                                            <div class="file-preview" id="file-preview">
+                                                @foreach (var fotoraf in fikir.Fotorafs)
+                                                {
+                                                    <div class="image-container">
+                                                        <img src="Home/images/@fotoraf.FotoDosyaYolu">
+                                                        <button type="button" class="delete-btn" @onclick=@(() => FotorafSil(fotoraf))>X</button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="h-25 alert alert-danger p-1 @(filerorMultiple ? "d-block":"d-none")" role="alert">
+                                            Resim dosyası yükleyin ve boyutu 5MB tan küçük olmalı
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 flex items-center justify-end gap-x-6">
+                            <button class="btn btn-primary mt-10 block w-full" type="submit">Bilgileri Kaydet</button>
+                        </div>
+                    </EditForm>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    private Fikir fikir = new Fikir();
+    private List<Katagori> katagoris = new List<Katagori>();
+    private string filename;
+    private bool IsSucces = false;
+    private bool filerorSingle = false;
+    private bool filerorMultiple = false;
+    private bool loading = true;
+    InputFile filePicker;
+
+    public async Task<List<Katagori>> GetAllKategorilerAsync()
+    {
+        var response = await httpClient.PostAsJsonAsync("Home/GetAllKategoriler", new { });
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<List<Katagori>>();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await helper.GetUser();
+        if (user == null)
+        {
+            Nav.NavigateTo("/");
+            await JSRuntime.InvokeVoidAsync("Toast.fire", new {
+                icon = "warning",
+                title = "Lütfen giriş yapınız"
+            });
+            return;
+        }
+        katagoris = await GetAllKategorilerAsync();
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task OnInputFileChangeMultiple(InputFileChangeEventArgs e)
+    {
+        var maxAllowedFiles = 5;
+        var maxFileSize = 1024 * 1024 * 5;
+        var files = e.GetMultipleFiles(maxAllowedFiles);
+        var content = new MultipartFormDataContent();
+        List<Fotoraf> fotos = new List<Fotoraf>();
+        for (int i = 0; i < files.Count; i++)
+        {
+
+            var file = files[i];
+            if (!file.ContentType.StartsWith("image/") || file.Size > maxFileSize)  // hatalı ise
+            {
+                filerorMultiple = true;
+                StateHasChanged();
+                break;
+            }
+            else
+            {
+                filerorMultiple = false;
+                var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
+                fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                    {
+                        Name = "\"files\"", // Sunucu tarafındaki isim ile eşleşmeli
+                        FileName = "\"" + file.Name + "\""
+                    };
+
+                content.Add(fileContent, "file", file.Name);
+                fotos.Add(new Fotoraf { FotoDosyaYolu = file.Name });
+            }
+        }
+        await httpClient.PostAsync("Home/UploadImage", content);
+        foreach (var item in fotos)
+        {
+            fikir.Fotorafs.Add(item);
+        }
+        StateHasChanged();
+    }
+
+    public async void HandleValidSubmit()
+    {
+        var user = await helper.GetUser();
+        if (user != null)
+        {
+            fikir.KullaniciId = user.Id;
+            var response = await httpClient.PostAsJsonAsync("Home/FikirEkle", fikir);
+            response.EnsureSuccessStatusCode();
+
+            await JSRuntime.InvokeVoidAsync("Toast.fire", new
+            {
+                icon = "success",
+                title = "Fikir başarıyla eklendi"
+            });
+            fikir = new Fikir();
+            StateHasChanged();
+        }
+    }
+
+    private async void OpenFilepicker()
+    {
+        await JSRuntime.InvokeVoidAsync("triggerClick", filePicker.Element);
+    }
+
+    private void FotorafSil(Fotoraf foto)
+    {
+        fikir.Fotorafs.Remove(foto);
+    }
+}

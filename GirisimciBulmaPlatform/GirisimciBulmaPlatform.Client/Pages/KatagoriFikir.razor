@@ -1,0 +1,146 @@
+﻿@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+
+@page "/katagorifikir/{Id}"
+
+<style>
+    .container-fluid{
+        max-height:85vh;
+    }
+</style>
+
+  <div class="container-fluid overflow-auto">
+    <h3>@Id</h3>
+    @if (fikirs==null)
+    {
+        <h2 class="align-text-center"> Yükleniyor</h2>
+    }
+    else
+    {    
+        foreach (var item in fikirs)
+        {
+            <div class="card" style="width: 18rem;">
+                <img class="card-img-top" src="images/banner.png" alt="Card image cap">
+                <div class="card-body">
+                    <h5 class="card-title">@item.FikirBaslik</h5>
+                    <p class="card-text">@item.FikirAciklama</p>
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalLong" @onclick="() => ModalToggle(item.Id)">
+                        Detay
+                    </button>
+                </div>
+            </div>
+
+            @if (sozlesmesiAcilmisFikir == item.Id)
+            {
+                             
+                <div class="modal fade show d-block" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="exampleModalLongTitle">Sözleşme</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close" @onclick="() => sozlesmesiAcilmisFikir = null">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <b>Gizlilik</b> @user.AdSoyad kişisi @item.FikirBaslik fikri hakkında öğreneceği tüm bilgileri gizli tutmayı kabul eder. Bu bilgiler, üçüncü şahıslara açıklanamaz veya başka bir amaç için kullanılamaz.
+                                <b>Fikrin Kullanımı</b> @user.AdSoyad, Fikirle ilgili bilgileri yalnızca değerlendirme amaçlı kullanabilir. Herhangi bir ticari veya başka bir amaç için kullanım, Fikir Sahibi'nin yazılı izni olmadan yasaktır.
+                                <b>İhlal Durumunda Sorumluluk</b> @user.AdSoyad, Fikri izinsiz kullanması veya üçüncü bir tarafa ifşa etmesi durumunda, Fikir Sahibi'ne karşı maddi ve manevi tazminatla yükümlü olacaktır.
+                            </div>
+                            <div class="modal-footer justify-content-between">
+
+                                <div class="form-check mb-3">
+                                        <input type="checkbox" class="form-check-input" @bind-value=sozlesme id="validationFormCheck1" required>
+                                    <label class="form-check-label" for="validationFormCheck1">
+                                        Okudum Analadım Kabul ediyorum
+                                    </label>
+                                    <div class="invalid-feedback">Example invalid feedback text</div>
+                                </div>
+                                <button type="button" class="btn btn-primary" data-dismiss="modal" @onclick="SozlesmeKontrol">Tamam</button>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        
+      
+    }
+
+
+</div>
+
+@code {
+    [Parameter]
+    public string Id { get; set; }
+
+    public List<Fikir> fikirs;
+    public int? sozlesmesiAcilmisFikir = null;
+    public bool sozlesme = false;
+    public Kullanici? user;
+    public bool Islogin = false;
+    public string username = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await helper.GetUser();
+        if (user!=null)       
+            Islogin = true;
+
+    }
+    private async void ModalToggle(int id)
+    {
+        await LogToConsoleAsync(id);
+        if (Islogin && user != null)
+        {
+            var acceptedIdeas = await helper.GetAcceptedIdeas(user);
+            await LogToConsoleAsync(acceptedIdeas);
+            if (acceptedIdeas.FirstOrDefault(idea => idea == id) != 0)
+            {
+                Nav.NavigateTo($"fikirdetay/{id}");
+            }
+            else
+            {
+                sozlesmesiAcilmisFikir = id;
+                sozlesme = false;
+                StateHasChanged();
+            }
+        }
+        else
+            await JSRuntime.InvokeVoidAsync("ShowAlert", "Fikirin Detayını Öğrenmek için önce Giriş yapmalısınız!");
+    }
+
+    private async void SozlesmeKontrol()
+    {
+        await LogToConsoleAsync(sozlesmesiAcilmisFikir);
+        if (sozlesme && user != null && sozlesmesiAcilmisFikir != null) // onaylandı fikrin detay sayfasına yönlendir
+        {
+            await helper.AcceptIdea(user, sozlesmesiAcilmisFikir ?? 0);
+            Nav.NavigateTo($"fikirdetay/{sozlesmesiAcilmisFikir}");
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        LogToConsoleAsync(Id);
+        GetFikirAsync();
+    }
+
+    public async Task GetFikirAsync()
+    {       
+        var response = await httpClient.PostAsJsonAsync("Home/GetKatogoriFikir", Id);
+        response.EnsureSuccessStatusCode();
+
+        fikirs = await response.Content.ReadFromJsonAsync<List<Fikir>>() ?? new List<Fikir>();
+        
+       
+        LogToConsoleAsync(fikirs);
+        StateHasChanged();
+    }
+
+    private async Task LogToConsoleAsync(object item)
+    {
+        await JSRuntime.InvokeVoidAsync("logToConsole", item);
+    }
+}

@@ -1,0 +1,88 @@
+﻿@page "/"
+
+<section class="section banner relative">
+    <div class="container">
+        <div class="row items-center">
+            <div class="lg:col-6">
+                <h1 class="banner-title">
+                    <i> Birlikte Yarat, Birlikte Başar </i> Mottosuyla Hareket ediyoruz.
+                </h1>
+                <p class="mt-6">
+                    Bir Girişim yapmak istiyorsunuz ama kararsızmısınız? Size en uygun fikirlere göz atarak ortaklık kurabilirsiniz.
+                </p>
+                <a class="btn btn-white mt-8" href="/fikirler">Yayındaki Fikirler</a>
+            </div>
+            <div class="lg:col-6">
+                <img class="w-full object-contain"
+                     src="images/kapak.png"
+                     width="603"
+                     height="396"
+                     alt="" />
+            </div>
+        </div>
+    </div>
+    <img class="banner-shape absolute -top-28 right-0 -z-[1] w-full max-w-[30%]"
+         src="images/banner-shape.svg"
+         alt="" />
+</section>
+
+<section class="section key-feature relative">
+    <img class="absolute left-0 top-0 -z-[1] -translate-y-1/2"
+         src="images/icons/feature-shape.svg"
+         alt="" />
+    <div class="container">
+        <div class="row justify-between text-center lg:text-start">
+            <div class="lg:col-5">
+                <h2>Fikirlerinizden vazgeçmeyin</h2>
+            </div>
+            <div class="mt-6 lg:col-5 lg:mt-0">
+                <p>
+                    Fikirlerinizi gerçekleştirmek için en az sizin kadar tutkulu iş ortakları bulmanızı kolaylaştırıyoruz.
+                </p>
+            </div>
+        </div>
+        <div class="key-feature-grid mt-10 grid grid-cols-2 gap-7 md:grid-cols-3 xl:grid-cols-4">
+            @foreach (var katagori in katagoris)
+            {
+                <a class="flex flex-col justify-between rounded-lg bg-white p-5 shadow-lg" href="fikirler?c=@katagori.Id">
+                    <div>
+                        <h3 class="h4 text-xl lg:text-2xl">@katagori.KatagoriAdi</h3>
+                        <p>Bu Kategorideki en yaratıcı fikirleri görmenk için tıklayın.</p>
+                    </div>
+                    <span class="icon mt-4">
+                        <img class="objec-contain"
+                             src="images/icons/feature-icon-1.svg"
+                             alt="" />
+                    </span>
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<Katagori> katagoris = new List<Katagori>();
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            katagoris = await GetAllKategorilerAsync();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("logToConsole", ex.Message);
+        }
+        loading = false;
+        StateHasChanged();
+    }
+
+    public async Task<List<Katagori>> GetAllKategorilerAsync()
+    {
+        var response = await httpClient.PostAsJsonAsync("Home/GetAllKategoriler", new { });
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<List<Katagori>>();
+    }
+}

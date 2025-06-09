@@ -1,0 +1,32 @@
+﻿<Modal visible=visible Closed="Close">
+    <div class="text-center">
+        <h2 class="block text-2xl font-bold text-gray-800">Fikir Gizlilik Sözleşmesi</h2>
+    </div>
+
+    <div class="mt-5">
+        <div class="flex flex-col gap-2">
+            <b>Gizlilik</b> @user.AdSoyad kişisi @fikir.FikirBaslik fikri hakkında öğreneceği tüm bilgileri gizli tutmayı kabul eder. Bu bilgiler, üçüncü şahıslara açıklanamaz veya başka bir amaç için kullanılamaz.
+            <b>Fikrin Kullanımı</b> @user.AdSoyad, Fikirle ilgili bilgileri yalnızca değerlendirme amaçlı kullanabilir. Herhangi bir ticari veya başka bir amaç için kullanım, Fikir Sahibi'nin yazılı izni olmadan yasaktır.
+            <b>İhlal Durumunda Sorumluluk</b> @user.AdSoyad, Fikri izinsiz kullanması veya üçüncü bir tarafa ifşa etmesi durumunda, Fikir Sahibi'ne karşı maddi ve manevi tazminatla yükümlü olacaktır.
+        </div>
+        <div class="form-group mt-4">
+            <input id="contract" type="checkbox" @bind-value="contractAccepted" class="mr-2" />
+            <label for="contract">
+                Sözleşmeyi okudum, anladım ve kabul ediyorum.
+            </label>
+        </div>
+        <button type="button" class="btn btn-primary mt-10 block w-full disabled:opacity-50" disabled="@(contractAccepted == false)" @onclick=Accepted>Tamam</button>
+    </div>
+</Modal>
+
+@code {
+    [Parameter] public bool visible { get; set; } = false;
+    [Parameter] public Kullanici user { get; set; }
+    [Parameter] public Fikir fikir { get; set; }
+    [Parameter] public EventCallback Closed { get; set; }
+    [Parameter] public EventCallback Accepted { get; set; }
+    private bool contractAccepted = false;
+
+    private async Task Close() => await Closed.InvokeAsync();
+    private async Task Accept() => await Accepted.InvokeAsync();
+}

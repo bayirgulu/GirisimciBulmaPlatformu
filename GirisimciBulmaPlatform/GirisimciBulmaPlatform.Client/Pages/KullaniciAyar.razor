@@ -1,0 +1,190 @@
+﻿@page "/account"
+
+<section class="page-hero">
+    <div class="container">
+        <div class="page-hero-content mx-auto max-w-[768px] text-center">
+            <h1 class="mb-5 text-3xl mt-8">Hesap Ayarları</h1>
+        </div>
+    </div>
+</section>
+
+<section class="section mt-12 pt-0">
+    <div class="container">
+        <div class="row justify-center lg:px-10">
+            <div class="col-6">
+                @if (loading)
+                {
+                    <div class="flex justify-center items-center py-10">
+                        <span class="loader"></span>
+                    </div>
+                }
+                else
+                {
+                    <EditForm Model="user" OnValidSubmit="@HandleValidSubmit" OnInvalidSubmit="@HandleEror">
+                        <DataAnnotationsValidator />
+                        <div class="space-y-12">
+                            <div class="pb-12">
+                                <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                                    <div class="col-span-full form-group">
+                                        <label class="form-label">Fotoğraf</label>
+                                        <img src="@userfoto" @key="userfoto" alt="Fotorafınız" class="m-2" width="105vh" height="165vh">
+                                        <InputFile OnChange="@OnInputFileChangeSingle" class="" />
+                                        <div class="h-25 alert alert-danger p-1 @(filerorSingle ? "d-block":"d-none")" role="alert">
+                                            Resim dosyası yükleleyin ve boyutu 5MB tan küçük olmalı
+                                        </div>
+                                    </div>
+
+                                    <div class="col-span-full form-group">
+                                        <label for="username" class="form-label">E-posta Adresi</label>
+                                        <InputText @bind-Value=user.MailAdres DisplayName="E-posta Adresi" type="text" id="username" class="form-control" />
+                                    </div>
+                                    
+                                    <div class="col-span-full form-group">
+                                        <label for="username" class="form-label">Kullanıcı Adı</label>
+                                        <InputText @bind-Value=user.KullaniciAdi DisplayName="Kullanıcı Adı" type="text" id="username" class="form-control" />
+                                        <ValidationMessage For="@(() => user.KullaniciAdi)" />
+                                    </div>
+
+                                    <div class="col-span-full form-group">
+                                        <label for="password" class="form-label">Şifre</label>
+                                        <InputText @bind-Value=user.KullaniciSifre DisplayName="Şifre" type="password" id="password" class="form-control" />
+                                        <ValidationMessage For="@(() => user.KullaniciSifre)" />
+                                    </div>
+
+                                    <div class="col-span-full form-group">
+                                        <label for="password" class="form-label">Telefon</label>
+                                        <InputText @bind-Value=user.Telefon DisplayName="Telefon" type="tel" id="password" class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="mt-6 flex items-center justify-end gap-x-6">
+                            <button class="btn btn-primary mt-10 block w-full" type="submit">Bilgileri Kaydet</button>
+                        </div>
+                    </EditForm>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    Kullanici user = new Kullanici();
+    private bool filerorSingle = false;
+    private string filename;
+    public string userfoto = "images/defualtUser.jpeg";
+    public bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await helper.GetUser();
+        if (user == null)
+        {
+            Nav.NavigateTo("/");
+            await JSRuntime.InvokeVoidAsync("Toast.fire", new
+            {
+                icon = "warning",
+                title = "Lütfen giriş yapınız"
+            });
+            return;
+        }
+
+        if (user.Foto==null)
+        {
+            userfoto = "images/defualtUser.jpeg";
+        }
+        else
+        {
+            userfoto = "images/" + user.Foto;
+        }
+
+        loading = false;
+    }
+
+    public async void HandleValidSubmit()
+    {
+        var response=await   httpClient.PostAsJsonAsync<Kullanici>("Home/KullaniciGuncelle", user);
+        if (response.IsSuccessStatusCode)
+        {
+            await JSRuntime.InvokeVoidAsync("Toast.fire", new
+            {
+                icon = "success",
+                title = "Hesap bilgileri başarıyla güncellendi"
+            });
+            await JSRuntime.InvokeVoidAsync("logToConsole", user);
+
+            helper.ClearUser();
+            helper.SetUser(user);
+            if (user.Foto == null)
+            {
+                userfoto = "images/defualtUser.jpeg";
+            }
+            else
+            {
+                userfoto = "images/" + user.Foto;
+            }
+            StateHasChanged();
+        }
+       
+
+    }
+
+    public async void HandleEror()
+    {
+        await JSRuntime.InvokeVoidAsync("logToConsole", "Hatalı");
+        await JSRuntime.InvokeVoidAsync("logToConsole", user);
+    }
+
+    private async Task OnInputFileChangeSingle(InputFileChangeEventArgs e)
+    {
+        var maxAllowedFiles = 4;
+        var maxFileSize = 1024 * 1024 * 5;
+        var file = e.File;
+
+        if (file != null)
+        {
+         
+            if (!file.ContentType.StartsWith("image/") || file.Size > maxFileSize) // hatalı bir durumda
+            {
+                filerorSingle = true;                                       
+                StateHasChanged();
+
+            }
+            else
+            {       
+
+                filerorSingle = false;
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
+                fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                    {
+                        Name = "\"files\"", // Sunucu tarafındaki isim ile eşleşmeli
+                        FileName = "\"" + file.Name + "\""
+                    };
+                content.Add(fileContent, "file", file.Name);
+                var response = await httpClient.PostAsync("Home/UploadImage", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    await JSRuntime.InvokeVoidAsync("logToConsole", "Başarılı");
+                    user.Foto = file.Name;                  
+                    StateHasChanged();
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("logToConsole", "Hatalı");
+                }
+
+                userfoto = "images/" + file.Name;
+             //   await JSRuntime.InvokeVoidAsync("logToConsole", userfoto);
+
+                StateHasChanged();
+            }
+            filename = file.Name;
+            // İçeriği kullanma...
+        }
+    }
+
+}

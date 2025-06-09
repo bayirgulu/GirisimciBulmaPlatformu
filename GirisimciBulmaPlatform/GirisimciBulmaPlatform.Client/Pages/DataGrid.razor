@@ -1,0 +1,74 @@
+﻿@page "/datagrid"
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+
+<h2>DevExpress Data Grid</h2>
+
+<p class="pb-2 pt-2 mw-1100">
+    The DevExpress Data Grid for Blazor allows you to display and manage data via a tabular (rows/columns) UI metaphor.
+    This page uses our Blazor Data Grid component to display weather forecast values.
+</p>
+
+@if (forecasts == null && katagoris ==null)
+{
+      
+    <p><em>Loading...</em></p>
+   
+}
+else
+{
+    <h2 @bind="katogoriadi"></h2>
+    <DxDataGrid Data="@katagoris"
+                CssClass="mw-1100 table-active">              
+        <Columns>
+            <DxDataGridDateEditColumn Caption="KatagoriAdi" Field="KatagoriAdi" />
+            <DxDataGridColumn Caption="BosAlan" Field="BosAlan" />
+           @*  <DxDataGridColumn Caption="FikirId" Field="FikirId" /> *@
+        </Columns>
+    </DxDataGrid>
+
+    <DxDataGrid Data="@forecasts"
+                CssClass="mw-1100 table-active">
+        <Columns>
+            <DxDataGridDateEditColumn Caption="Date" Field="Date" />
+            <DxDataGridColumn Caption="TemperatureC" Field="TemperatureC" />
+            <DxDataGridColumn Caption="Summary" Field="Summary" />
+        </Columns>
+    </DxDataGrid>
+}
+
+@code {
+    private WeatherForecast[]? forecasts;
+    private List<Katagori>? katagoris;
+    public string katogoriadi = "";
+    protected override async Task OnInitializedAsync()
+    {
+        forecasts = await httpClient.GetFromJsonAsync<WeatherForecast[]>("WeatherForecast");
+
+        katagoris = await GetAllKategorilerAsync();
+    }
+
+    public async Task<List<Katagori>> GetAllKategorilerAsync()
+    {
+        var response = await httpClient.PostAsJsonAsync("Home/GetAllKategoriler", new { });
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<List<Katagori>>();
+    }
+    
+    private void ShowAlert(string alertMessage)
+    {
+        // JavaScript alert fonksiyonunu çağırarak kullanıcıya bildirim göster
+        JSRuntime.InvokeVoidAsync("alert", alertMessage);
+    }
+    public class WeatherForecast
+    {
+        public DateTime Date { get; set; }
+
+        public int TemperatureC { get; set; }
+
+        public string? Summary { get; set; }
+
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
+}
