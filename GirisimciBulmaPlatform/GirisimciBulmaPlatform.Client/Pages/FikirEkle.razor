@@ -265,6 +265,11 @@
     {
         await JSRuntime.InvokeVoidAsync("console.log", "Invalid");
         await JSRuntime.InvokeVoidAsync("console.log",fikir);
+        await JSRuntime.InvokeVoidAsync("Toast.fire", new
+        {
+            icon = "warning",
+            title = "Lütfen tüm gerekli alanları doldurun"
+        });
         StateHasChanged();
     }
 
