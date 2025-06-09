@@ -22,6 +22,7 @@ namespace GirisimciBulmaPlatform.Shared.Models
 		public string? FikirDetay { get; set; }
         public string? BosAlan { get; set; }
         public int? KullaniciId { get; set; }
+        [Required(ErrorMessage = "Kategori seçilmesi gereklidir")]
         public int? KatagoriId { get; set; }
         public string? KapakFoto { get; set; }
 

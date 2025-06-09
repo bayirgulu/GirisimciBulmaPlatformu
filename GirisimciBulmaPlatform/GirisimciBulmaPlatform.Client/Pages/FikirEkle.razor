@@ -98,6 +98,7 @@
                                                 <option value="@katogori.Id">@katogori.KatagoriAdi</option>
                                             }
                                         </InputSelect>
+                                        <ValidationMessage For="@(() => fikir.KatagoriId)" />
                                     </div>
 
                                     <div class="col-span-full form-group">
@@ -109,12 +110,14 @@
                                     <div class="col-span-full form-group">
                                         <label for="short_description" class="form-label">Kısa Açıklama</label>
                                         <InputTextArea @bind-Value=fikir.FikirAciklama DisplayName="Fikir Kısa Açıklama" class="form-control h-[90px] resize-none" id="short_description" rows="4"></InputTextArea>
+                                        <ValidationMessage For="@(() => fikir.FikirAciklama)" />
                                     </div>
 
                                     <div class="col-span-full form-group">
                                         <label for="description" class="form-label">Açıklama</label>
                                         <InputTextArea @bind-Value=fikir.FikirDetay DisplayName="Fikir Açıklama" class="form-control h-[150px] resize-none" id="description" rows="10"></InputTextArea>
-                                    </div
+                                        <ValidationMessage For="@(() => fikir.FikirDetay)" />
+                                    </div>
 
                                     <div class="col-span-full form-group">
                                         <label for="description" class="form-label">Fotoğraflar</label>
