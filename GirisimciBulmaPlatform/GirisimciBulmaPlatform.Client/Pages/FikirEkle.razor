@@ -98,25 +98,40 @@
                                                 <option value="@katogori.Id">@katogori.KatagoriAdi</option>
                                             }
                                         </InputSelect>
-                                        <ValidationMessage For="@(() => fikir.KatagoriId)" />
+                                        <div style="color:red">
+                                            <ValidationMessage For="@(() => fikir.KatagoriId)" />
+                                        </div>
+                                       
+                                        
                                     </div>
 
                                     <div class="col-span-full form-group">
                                         <label for="title" class="form-label">Başlık</label>
                                         <InputText @bind-Value=fikir.FikirBaslik DisplayName="Fikir Başlık" type="text" id="title" class="form-control" />
-                                        <ValidationMessage For="@(() => fikir.FikirBaslik)" />
+                                        <div style="color:red">
+                                            <ValidationMessage For="@(() => fikir.FikirBaslik)" />
+                                        </div>
+                                      
+                                    
                                     </div>
 
                                     <div class="col-span-full form-group">
                                         <label for="short_description" class="form-label">Kısa Açıklama</label>
                                         <InputTextArea @bind-Value=fikir.FikirAciklama DisplayName="Fikir Kısa Açıklama" class="form-control h-[90px] resize-none" id="short_description" rows="4"></InputTextArea>
-                                        <ValidationMessage For="@(() => fikir.FikirAciklama)" />
+                                        <div style="color:red">
+                                            <ValidationMessage For="@(() => fikir.FikirAciklama)" />
+                                        </div>
+                              
+                                      
                                     </div>
 
                                     <div class="col-span-full form-group">
                                         <label for="description" class="form-label">Açıklama</label>
                                         <InputTextArea @bind-Value=fikir.FikirDetay DisplayName="Fikir Açıklama" class="form-control h-[150px] resize-none" id="description" rows="10"></InputTextArea>
-                                        <ValidationMessage For="@(() => fikir.FikirDetay)" />
+                                        <div style="color:red">
+                                            <ValidationMessage For="@(() => fikir.FikirDetay)" />
+                                        </div>
+                                       
                                     </div>
 
                                     <div class="col-span-full form-group">
@@ -250,6 +265,7 @@
     {
         await JSRuntime.InvokeVoidAsync("console.log", "Invalid");
         await JSRuntime.InvokeVoidAsync("console.log",fikir);
+        StateHasChanged();
     }
 
     private async void OpenFilepicker()
